@@ -1,0 +1,82 @@
+{
+  "project_info": {
+    "project_number": "1027615173078",
+    "project_id": "expense-tracker-8b7eb",
+    "storage_bucket": "expense-tracker-8b7eb.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1027615173078:android:eb8e4404da538c1b8b5c77",
+        "android_client_info": {
+          "package_name": "com.example.expense_tracker"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1027615173078-ptu6348kh7looqopkkf8cjguouqd288n.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCo_7SilSmt3708tsJ1yoDKTvOUdLi2sdI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1027615173078-ptu6348kh7looqopkkf8cjguouqd288n.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1027615173078-ju7nojcmeej13nnb3jmsntatvt8o53d8.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.expenseTracker"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1027615173078:android:0ee49ba32fc5d2708b5c77",
+        "android_client_info": {
+          "package_name": "com.example.expense_tracker_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1027615173078-ptu6348kh7looqopkkf8cjguouqd288n.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCo_7SilSmt3708tsJ1yoDKTvOUdLi2sdI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1027615173078-ptu6348kh7looqopkkf8cjguouqd288n.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1027615173078-ju7nojcmeej13nnb3jmsntatvt8o53d8.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.expenseTracker"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
