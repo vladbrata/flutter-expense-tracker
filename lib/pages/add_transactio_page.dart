@@ -2,7 +2,9 @@ import 'package:expense_tracker/pages/add_category_page.dart';
 import 'package:expense_tracker/services/db_service.dart';
 import 'package:expense_tracker/services/user_class.dart';
 import 'package:expense_tracker/style/app_styles.dart';
+import 'package:expense_tracker/widgets/category_container.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 class AddTransactionPage extends StatefulWidget {
@@ -15,10 +17,14 @@ class AddTransactionPage extends StatefulWidget {
 class _AddTransactionPageState extends State<AddTransactionPage> {
   bool _isExpense = true;
   bool _isIncome = false;
-  String _selectedCategory = "Salariu";
+  String _selectedCategory = "";
   TextEditingController amountController = TextEditingController();
   @override
   Widget build(BuildContext context) {
+    final user = Provider.of<MyUser?>(context);
+    if (user != null) {
+      DBService().fetchCategories(user);
+    }
     return Scaffold(
       backgroundColor: AppColors.globalBackgroundColor,
       appBar: AppBar(
@@ -93,6 +99,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
               const SizedBox(height: 20),
               if (_isExpense)
                 Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 15),
                   height: 500,
                   width: double.infinity,
                   decoration: BoxDecoration(
@@ -109,6 +116,14 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                             child: TextField(
                               controller: amountController,
                               decoration: InputDecoration(),
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                              ],
+                              style: TextStyle(
+                                color: AppColors.globalTextMainColor,
+                              ),
+                              textAlign: TextAlign.center,
                             ),
                           ),
 
@@ -120,66 +135,96 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                           ),
                         ],
                       ),
+                      SizedBox(height: 20),
+                      Container(
+                        height: 300,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8.0),
+                              child: _buildCategoriesContent(user),
+                            ),
+                          ],
+                        ),
+                      ),
                       Spacer(),
-                      ElevatedButton(
-                        onPressed: () async {
-                          // 1. Preluăm userul din Provider (cel setat în main.dart)
-                          final user = Provider.of<MyUser?>(
-                            context,
-                            listen: false,
-                          );
-
-                          print(amountController.text);
-                          // 2. Validăm datele (să nu fie goale)
-                          if (user != null &&
-                              amountController.text.isNotEmpty) {
-                            print(
-                              "User: ${user.name} vrea sa adauge o cheltuiala cu suma: ${amountController.text}",
+                      Padding(
+                        padding: const EdgeInsets.all(15.0),
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            // 1. Preluăm userul din Provider (cel setat în main.dart)
+                            final user = Provider.of<MyUser?>(
+                              context,
+                              listen: false,
                             );
-                            try {
-                              // Convertim textul în număr
-                              double amount = double.parse(
-                                amountController.text.trim(),
-                              );
 
-                              // 3. Apelăm funcția din DBService
-                              await DBService().saveTransaction(
-                                uid: user.uid,
-                                amount: amount,
-                                title: _selectedCategory,
-                                transactionType: _isIncome
-                                    ? 'income'
-                                    : 'expenses',
+                            print(amountController.text);
+                            // 2. Validăm datele (să nu fie goale)
+                            if (user != null &&
+                                amountController.text.isNotEmpty) {
+                              print(
+                                "User: ${user.name} vrea sa adauge o cheltuiala cu suma: ${amountController.text}",
                               );
+                              try {
+                                // Convertim textul în număr
+                                double amount = double.parse(
+                                  amountController.text.trim(),
+                                );
 
-                              // 4. Succes! Închidem pagina sau arătăm un mesaj
-                              if (mounted) {
+                                // 3. Apelăm funcția din DBService
+                                await DBService().saveTransaction(
+                                  uid: user.uid,
+                                  amount: amount,
+                                  title: _selectedCategory,
+                                  transactionType: _isIncome
+                                      ? 'income'
+                                      : 'expenses',
+                                );
+
+                                // 4. Succes! Închidem pagina sau arătăm un mesaj
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        "Expense Saved Successfully",
+                                      ),
+                                    ),
+                                  );
+                                  Navigator.pop(
+                                    context,
+                                  ); // Ne întoarcem la pagina anterioară
+                                }
+                              } catch (e) {
+                                // Gestionăm eroarea (ex: dacă utilizatorul scrie litere în loc de cifre)
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text("Expense Saved Successfully"),
+                                  SnackBar(
+                                    content: Text("Error: Invalid input!"),
                                   ),
                                 );
-                                Navigator.pop(
-                                  context,
-                                ); // Ne întoarcem la pagina anterioară
                               }
-                            } catch (e) {
-                              // Gestionăm eroarea (ex: dacă utilizatorul scrie litere în loc de cifre)
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text("Error: Invalid input!"),
-                                ),
-                              );
                             }
-                          }
-                        },
-                        child: const Text("Save Expense"),
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.globalAccentColor,
+                            foregroundColor: Colors.black,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                          ),
+                          child: const Text("Save Expense"),
+                        ),
                       ),
                     ],
                   ),
                 )
               else
                 Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 15),
                   height: 500,
                   width: double.infinity,
                   decoration: BoxDecoration(
@@ -196,126 +241,108 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                             child: TextField(
                               controller: amountController,
                               decoration: InputDecoration(),
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                              ],
+                              style: TextStyle(
+                                color: AppColors.globalTextMainColor,
+                              ),
+                              textAlign: TextAlign.center,
                             ),
                           ),
 
                           Text(
-                            'RON primiti',
+                            'RON cheltuit',
                             style: TextStyle(
                               color: AppColors.globalTextMainColor,
                             ),
                           ),
                         ],
                       ),
-
-                      Padding(
-                        padding: const EdgeInsets.only(top: 50),
-                        child: Container(
-                          height: 300,
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.only(left: 20),
-                                child: Text(
-                                  textAlign: TextAlign.left,
-                                  'Categories',
-                                  style: TextStyle(
-                                    color: AppColors.globalTextMainColor,
-                                  ),
-                                ),
-                              ),
-                              Container(
-                                padding: EdgeInsets.only(left: 10),
-                                alignment: Alignment.topLeft,
-                                height: 200,
-                                width: double.infinity,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Row(
-                                  children: [
-                                    IconButton(
-                                      icon: Icon(
-                                        Icons.add_circle_outline_rounded,
-                                        size: 50,
-                                        color: AppColors.globalTextMainColor,
-                                      ),
-                                      onPressed: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                const AddCategoryPage(),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
+                      SizedBox(height: 20),
+                      Container(
+                        height: 300,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8.0),
+                              child: _buildCategoriesContent(user),
+                            ),
+                          ],
                         ),
                       ),
                       Spacer(),
-                      ElevatedButton(
-                        onPressed: () async {
-                          // 1. Preluăm userul din Provider (cel setat în main.dart)
-                          final user = Provider.of<MyUser?>(
-                            context,
-                            listen: false,
-                          );
-
-                          print(amountController.text);
-                          // 2. Validăm datele (să nu fie goale)
-                          if (user != null &&
-                              amountController.text.isNotEmpty) {
-                            print(
-                              "User: ${user.name} vrea sa adauge venit cu suma: ${amountController.text}",
+                      Padding(
+                        padding: const EdgeInsets.all(15.0),
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            // 1. Preluăm userul din Provider (cel setat în main.dart)
+                            final user = Provider.of<MyUser?>(
+                              context,
+                              listen: false,
                             );
-                            try {
-                              // Convertim textul în număr
-                              double amount = double.parse(
-                                amountController.text.trim(),
-                              );
 
-                              // 3. Apelăm funcția din DBService
-                              await DBService().saveTransaction(
-                                uid: user.uid,
-                                amount: amount,
-                                title: _selectedCategory,
-                                transactionType: _isIncome
-                                    ? 'income'
-                                    : 'expenses',
+                            print(amountController.text);
+                            // 2. Validăm datele (să nu fie goale)
+                            if (user != null &&
+                                amountController.text.isNotEmpty) {
+                              print(
+                                "User: ${user.name} vrea sa adauge venit cu suma: ${amountController.text}",
                               );
+                              try {
+                                // Convertim textul în număr
+                                double amount = double.parse(
+                                  amountController.text.trim(),
+                                );
 
-                              // 4. Succes! Închidem pagina sau arătăm un mesaj
-                              if (mounted) {
+                                // 3. Apelăm funcția din DBService
+                                await DBService().saveTransaction(
+                                  uid: user.uid,
+                                  amount: amount,
+                                  title: _selectedCategory,
+                                  transactionType: _isIncome
+                                      ? 'income'
+                                      : 'expenses',
+                                );
+
+                                // 4. Succes! Închidem pagina sau arătăm un mesaj
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        "Income saved successfully!",
+                                      ),
+                                    ),
+                                  );
+                                  Navigator.pop(
+                                    context,
+                                  ); // Ne întoarcem la pagina anterioară
+                                }
+                              } catch (e) {
+                                // Gestionăm eroarea (ex: dacă utilizatorul scrie litere în loc de cifre)
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text("Income saved successfully!"),
+                                  SnackBar(
+                                    content: Text("Error: Invalid input!"),
                                   ),
                                 );
-                                Navigator.pop(
-                                  context,
-                                ); // Ne întoarcem la pagina anterioară
                               }
-                            } catch (e) {
-                              // Gestionăm eroarea (ex: dacă utilizatorul scrie litere în loc de cifre)
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text("Error: Invalid input!"),
-                                ),
-                              );
                             }
-                          }
-                        },
-                        child: const Text("Save Income"),
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.globalAccentColor,
+                            foregroundColor: Colors.black,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                          ),
+                          child: const Text("Save Income"),
+                        ),
                       ),
                     ],
                   ),
@@ -324,6 +351,89 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildCategoriesContent(MyUser? user) {
+    if (user == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    // Filtrăm categoriile în funcție de tipul selectat (Expense/Income)
+    final filteredCategories = user.categories.where((cat) {
+      if (_isExpense) return cat.type == "Expense";
+      if (_isIncome) return cat.type == "Income";
+      return false;
+    }).toList();
+
+    // Folosim +1 la itemCount pentru a face loc butonului de adăugare
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 6,
+        mainAxisSpacing: 5,
+        crossAxisSpacing: 5,
+        childAspectRatio: 0.85,
+      ),
+      itemCount:
+          filteredCategories.length + 1, // Lista filtrată + butonul de plus
+      itemBuilder: (context, index) {
+        // Verificăm dacă suntem la ultimul element din Grid
+        if (index == filteredCategories.length) {
+          return GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AddCategoryPage(),
+                ),
+              );
+            },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  // Folosim aceleași dimensiuni (padding 12) ca în CategoryContainer
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors
+                        .grey[800], // O culoare neutră pentru butonul de adăugare
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.add,
+                    color: AppColors.globalTextMainColor,
+                    size: 20, // Aceeași dimensiune ca iconițele tale
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "Add",
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+        // Altfel, returnăm categoria normală din lista filtrată
+        final cat = filteredCategories[index];
+        return CategoryContainer(
+          category: cat,
+          isSelected: cat.name == _selectedCategory,
+          onTap: () {
+            setState(() {
+              _selectedCategory = cat.name;
+            });
+            print("Selected category: $_selectedCategory");
+          },
+        );
+      },
     );
   }
 }

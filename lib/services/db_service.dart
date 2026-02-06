@@ -99,15 +99,71 @@ class DBService {
     user.categories.add(newCat);
 
     // 2. Salvăm în baza de date conform schemei tale
-    DatabaseReference ref = FirebaseDatabase.instance.ref(
-      "users/${user.uid}/category",
-    );
+    // 2. Salvăm în baza de date folosind instanța corectă (_firebaseDatabase)
+    // Folosim push() pentru a crea un nod nou cu ID unic, pentru a nu suprascrie toate categoriile
+    await _firebaseDatabase
+        .child("users")
+        .child(user.uid)
+        .child("category")
+        .push()
+        .set({
+          "name": newCat.name,
+          "type": newCat.type,
+          "icon": newCat.icon.codePoint.toString(),
+          "color": newCat.color.value
+              .toString(), // Salvăm valoarea int a culorii pentru a fi mai ușor de reconstruit
+        });
+  }
 
-    await ref.set({
-      "name": newCat.name,
-      "type": newCat.type,
-      "icon": newCat.icon.codePoint.toString(),
-      "color": newCat.color.toString(),
-    });
+  Future<void> fetchCategories(MyUser user) async {
+    // Folosirea instanței corecte
+    DatabaseReference ref = _firebaseDatabase
+        .child("users")
+        .child(user.uid)
+        .child("category");
+
+    try {
+      DataSnapshot snapshot = await ref.get();
+
+      if (snapshot.exists) {
+        print("✅ Categorii găsite în baza de date.");
+        List<MyCategory> loadedCategories = [];
+
+        // Verificăm structura datelor
+        if (snapshot.value is Map) {
+          Map<dynamic, dynamic> data = snapshot.value as Map<dynamic, dynamic>;
+
+          data.forEach((key, value) {
+            // Verificăm dacă value este Map (structure corectă)
+            if (value is Map) {
+              try {
+                loadedCategories.add(
+                  MyCategory(
+                    name: value['name'],
+                    type: value['type'],
+                    // Convertim string-ul înapoi în IconData
+                    icon: IconData(
+                      int.parse(value['icon']),
+                      fontFamily: 'MaterialIcons',
+                    ),
+                    // Convertim string-ul (int value) înapoi în Color
+                    color: Color(int.parse(value['color'])),
+                  ),
+                );
+              } catch (e) {
+                print("⚠️ Eroare la parsarea unei categorii: $e");
+              }
+            }
+          });
+        }
+
+        user.categories = loadedCategories;
+        print("✅ Am descărcat ${loadedCategories.length} categorii.");
+      } else {
+        print("ℹ️ Nu există categorii în baza de date.");
+      }
+    } catch (e) {
+      print("❌ Eroare la descărcare categorii: $e");
+    }
   }
 }

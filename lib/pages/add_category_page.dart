@@ -15,35 +15,48 @@ class AddCategoryPage extends StatefulWidget {
 }
 
 class _AddCategoryPageState extends State<AddCategoryPage> {
+  late ValueNotifier<Color> _selectedCategoryColor;
+  late ValueNotifier<String> _selectedType;
+  late ValueNotifier<IconData> _selectedExpenseIcon;
+  late ValueNotifier<IconData> _selectedIncomeIcon;
+  late TextEditingController categoryNameController;
+
+  final List<Color> _categoryColors = const [
+    Color(0xFF4CAF50), // Verde (Succes/Profit)
+    Color(0xFFF44336), // Roșu (Cheltuieli/Urgențe)
+    Color(0xFF2196F3), // Albastru (Facturi/Educație)
+    Color(0xFFFFEB3B), // Galben (Divertisment)
+    Color(0xFF9C27B0), // Violet (Sănătate/Lifestyle)
+    Color(0xFFFF9800), // Portocaliu (Transport)
+    Color(0xFF00BCD4), // Turcoaz (Cumpărături)
+    Color(0xFFE91E63), // Roz (Cadouri)
+    Color(0xFF795548), // Maro (Diverse)
+    Color(0xFF607D8B), // Gri-Albastru (Economii)
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedCategoryColor = ValueNotifier<Color>(const Color(0xFF4CAF50));
+    _selectedType = ValueNotifier<String>("Expense");
+    _selectedExpenseIcon = ValueNotifier<IconData>(Icons.shopping_cart);
+    _selectedIncomeIcon = ValueNotifier<IconData>(Icons.payments);
+    categoryNameController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _selectedCategoryColor.dispose();
+    _selectedType.dispose();
+    _selectedExpenseIcon.dispose();
+    _selectedIncomeIcon.dispose();
+    categoryNameController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = Provider.of<MyUser?>(context);
-
-    TextEditingController categoryNameController = TextEditingController();
-    final ValueNotifier<String> _selectedType = ValueNotifier<String>(
-      "Expense",
-    );
-    // Variabila care salvează iconița selectată (implicit prima din listă)
-    final ValueNotifier<IconData> _selectedExpenseIcon =
-        ValueNotifier<IconData>(Icons.shopping_cart);
-    final ValueNotifier<IconData> _selectedIncomeIcon = ValueNotifier<IconData>(
-      Icons.payments,
-    );
-    final ValueNotifier<Color> _selectedCategoryColor = ValueNotifier<Color>(
-      const Color(0xFF4CAF50),
-    );
-    final List<Color> _categoryColors = [
-      const Color(0xFF4CAF50), // Verde (Succes/Profit)
-      const Color(0xFFF44336), // Roșu (Cheltuieli/Urgențe)
-      const Color(0xFF2196F3), // Albastru (Facturi/Educație)
-      const Color(0xFFFFEB3B), // Galben (Divertisment)
-      const Color(0xFF9C27B0), // Violet (Sănătate/Lifestyle)
-      const Color(0xFFFF9800), // Portocaliu (Transport)
-      const Color(0xFF00BCD4), // Turcoaz (Cumpărături)
-      const Color(0xFFE91E63), // Roz (Cadouri)
-      const Color(0xFF795548), // Maro (Diverse)
-      const Color(0xFF607D8B), // Gri-Albastru (Economii)
-    ];
 
     // Lista de iconițe specifice cheltuielilor
 
@@ -250,7 +263,7 @@ class _AddCategoryPageState extends State<AddCategoryPage> {
           Padding(
             padding: const EdgeInsets.all(30.0),
             child: ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 if (categoryNameController.text.isNotEmpty) {
                   print("✅ catname is empty: ${MyCategory.current?.name}");
                   // Creăm obiectul și îl salvăm în variabila statică
@@ -261,22 +274,31 @@ class _AddCategoryPageState extends State<AddCategoryPage> {
                     color: _selectedCategoryColor.value,
                   );
                   try {
-                    DBService().addNewCategory(MyCategory.current!, user!);
+                    await DBService().addNewCategory(
+                      MyCategory.current!,
+                      user!,
+                    );
+                    print(
+                      "✅ Obiectul a fost creat și salvat global: ${MyCategory.current?.name}",
+                    );
+                    print("Type: ${MyCategory.current?.type}");
+                    print("Icon: ${MyCategory.current?.icon}");
+                    print("Color: ${MyCategory.current?.color}");
+
+                    if (mounted) {
+                      Navigator.pop(context);
+                    }
                   } catch (e) {
                     print(
                       "❌ Eroare la salvarea categoriei in baza de date: $e",
                     );
+                    // Optional: Show a snackbar or alert to the user
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text("Error saving category: $e")),
+                      );
+                    }
                   }
-
-                  print(
-                    "✅ Obiectul a fost creat și salvat global: ${MyCategory.current?.name}",
-                  );
-                  print("Type: ${MyCategory.current?.type}");
-                  print("Icon: ${MyCategory.current?.icon}");
-                  print("Color: ${MyCategory.current?.color}");
-
-                  // Dacă vrei să mergi la altă pagină după creare
-                  Navigator.pop(context);
                 }
               },
               style: ElevatedButton.styleFrom(
@@ -293,78 +315,58 @@ class _AddCategoryPageState extends State<AddCategoryPage> {
       ),
     );
   }
-}
 
-// 1. Variabila care păstrează preferința (pune-o în clasa State)
-final ValueNotifier<Color> _selectedCategoryColor = ValueNotifier<Color>(
-  const Color(0xFF4CAF50),
-);
+  Widget _buildColorSelector() {
+    return ValueListenableBuilder<Color>(
+      valueListenable: _selectedCategoryColor,
+      builder: (context, selectedColor, _) {
+        return Container(
+          height: 70,
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Colors.grey[900],
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: _categoryColors.length,
+            itemBuilder: (context, index) {
+              Color color = _categoryColors[index];
+              bool isSelected = selectedColor == color;
 
-// 2. Lista de culori
-final List<Color> _categoryColors = [
-  const Color(0xFF4CAF50),
-  const Color(0xFFF44336),
-  const Color(0xFF2196F3),
-  const Color(0xFFFFEB3B),
-  const Color(0xFF9C27B0),
-  const Color(0xFFFF9800),
-  const Color(0xFF00BCD4),
-  const Color(0xFFE91E63),
-  const Color(0xFF795548),
-  const Color(0xFF607D8B),
-];
-
-// 3. Widget-ul în sine
-Widget _buildColorSelector() {
-  return ValueListenableBuilder<Color>(
-    valueListenable: _selectedCategoryColor,
-    builder: (context, selectedColor, _) {
-      return Container(
-        height: 70,
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: Colors.grey[900],
-          borderRadius: BorderRadius.circular(15),
-        ),
-        child: ListView.builder(
-          scrollDirection: Axis.horizontal,
-          itemCount: _categoryColors.length,
-          itemBuilder: (context, index) {
-            Color color = _categoryColors[index];
-            bool isSelected = selectedColor == color;
-
-            return GestureDetector(
-              onTap: () {
-                // AICI se salvează preferința în variabilă la fiecare apăsare
-                _selectedCategoryColor.value = color;
-                print("Culoare selectată: ${color.toString()}");
-              },
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 8),
-                width: 45,
-                height: 45,
-                decoration: BoxDecoration(
-                  color: color,
-                  shape: BoxShape.circle,
-                  // Feedback vizual: contur alb dacă e selectată
-                  border: isSelected
-                      ? Border.all(color: Colors.white, width: 3)
-                      : Border.all(color: Colors.transparent),
+              return GestureDetector(
+                onTap: () {
+                  // AICI se salvează preferința în variabilă la fiecare apăsare
+                  _selectedCategoryColor.value = color;
+                  print("Culoare selectată: ${color.toString()}");
+                },
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 8),
+                  width: 45,
+                  height: 45,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                    // Feedback vizual: contur alb dacă e selectată
+                    border: isSelected
+                        ? Border.all(color: Colors.white, width: 3)
+                        : Border.all(color: Colors.transparent),
+                  ),
+                  child: isSelected
+                      ? const Icon(
+                          Icons.check,
+                          color: AppColors.globalAccentColor,
+                          size: 24,
+                        )
+                      : null,
                 ),
-                child: isSelected
-                    ? const Icon(
-                        Icons.check,
-                        color: AppColors.globalAccentColor,
-                        size: 24,
-                      )
-                    : null,
-              ),
-            );
-          },
-        ),
-      );
-    },
-  );
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
 }
 
 class ExpenseIconSelector extends StatefulWidget {
