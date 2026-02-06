@@ -1,3 +1,4 @@
+import 'package:expense_tracker/pages/add_category_page.dart';
 import 'package:expense_tracker/services/db_service.dart';
 import 'package:expense_tracker/services/user_class.dart';
 import 'package:expense_tracker/style/app_styles.dart';
@@ -205,6 +206,61 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                             ),
                           ),
                         ],
+                      ),
+
+                      Padding(
+                        padding: const EdgeInsets.only(top: 50),
+                        child: Container(
+                          height: 300,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.only(left: 20),
+                                child: Text(
+                                  textAlign: TextAlign.left,
+                                  'Categories',
+                                  style: TextStyle(
+                                    color: AppColors.globalTextMainColor,
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                padding: EdgeInsets.only(left: 10),
+                                alignment: Alignment.topLeft,
+                                height: 200,
+                                width: double.infinity,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Row(
+                                  children: [
+                                    IconButton(
+                                      icon: Icon(
+                                        Icons.add_circle_outline_rounded,
+                                        size: 50,
+                                        color: AppColors.globalTextMainColor,
+                                      ),
+                                      onPressed: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                const AddCategoryPage(),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                       Spacer(),
                       ElevatedButton(

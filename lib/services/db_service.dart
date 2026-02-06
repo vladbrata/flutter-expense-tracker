@@ -1,3 +1,4 @@
+import 'package:expense_tracker/services/category_class.dart';
 import 'package:expense_tracker/services/user_class.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -91,5 +92,22 @@ class DBService {
       print("❌ Eroare la salvarea $transactionType: $e");
       rethrow;
     }
+  }
+
+  Future<void> addNewCategory(MyCategory newCat, MyUser user) async {
+    // 1. Adăugăm în lista locală
+    user.categories.add(newCat);
+
+    // 2. Salvăm în baza de date conform schemei tale
+    DatabaseReference ref = FirebaseDatabase.instance.ref(
+      "users/${user.uid}/category",
+    );
+
+    await ref.set({
+      "name": newCat.name,
+      "type": newCat.type,
+      "icon": newCat.icon.codePoint.toString(),
+      "color": newCat.color.toString(),
+    });
   }
 }
