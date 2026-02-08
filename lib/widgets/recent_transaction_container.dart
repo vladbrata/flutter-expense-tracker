@@ -1,13 +1,17 @@
+import 'package:expense_tracker/services/user_class.dart';
 import 'package:expense_tracker/style/app_styles.dart';
+import 'package:expense_tracker/widgets/recent_transaction_widget.dart.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-class RecentTransactionWidget extends StatelessWidget {
-  const RecentTransactionWidget({Key? key}) : super(key: key);
+class RecentTransactionContainer extends StatelessWidget {
+  const RecentTransactionContainer({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final user = Provider.of<MyUser?>(context);
     return Container(
-      height: 250,
+      height: 300,
       width: double.infinity,
       // margin: const EdgeInsets.symmetric(vertical: 20),
       padding: const EdgeInsets.all(20),
@@ -43,6 +47,18 @@ class RecentTransactionWidget extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+          RecentTransactionWidget(
+            title: user?.incomes[0].title ?? '',
+            amount: user?.incomes[0].amount ?? 0,
+          ),
+          RecentTransactionWidget(
+            title: user?.expenses[0].title ?? '',
+            amount: user?.expenses[0].amount ?? 0,
+          ),
+          RecentTransactionWidget(
+            title: user?.expenses[0].title ?? '',
+            amount: user?.expenses[0].amount ?? 0,
           ),
         ],
       ),

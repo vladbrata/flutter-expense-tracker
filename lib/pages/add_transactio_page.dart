@@ -1,5 +1,6 @@
 import 'package:expense_tracker/pages/add_category_page.dart';
 import 'package:expense_tracker/services/db_service.dart';
+import 'package:expense_tracker/services/transaction_service.dart';
 import 'package:expense_tracker/services/user_class.dart';
 import 'package:expense_tracker/style/app_styles.dart';
 import 'package:expense_tracker/widgets/category_container.dart';
@@ -195,8 +196,19 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                                       ),
                                     ),
                                   );
+                                  user.expenses.add(
+                                    Expense(
+                                      id: DateTime.now().toString(),
+                                      userId: user.uid,
+                                      amount: double.parse(
+                                        amountController.text,
+                                      ),
+                                      title: _selectedCategory,
+                                    ),
+                                  );
                                   Navigator.pop(
                                     context,
+                                    true,
                                   ); // Ne întoarcem la pagina anterioară
                                 }
                               } catch (e) {
@@ -216,6 +228,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                               borderRadius: BorderRadius.circular(15),
                             ),
                           ),
+
                           child: const Text("Save Expense"),
                         ),
                       ),
@@ -311,6 +324,14 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                                       : 'expenses',
                                 );
 
+                                user.incomes.add(
+                                  Income(
+                                    id: DateTime.now().toString(),
+                                    userId: user.uid,
+                                    amount: double.parse(amountController.text),
+                                    title: _selectedCategory,
+                                  ),
+                                );
                                 // 4. Succes! Închidem pagina sau arătăm un mesaj
                                 if (mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
@@ -322,6 +343,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                                   );
                                   Navigator.pop(
                                     context,
+                                    true,
                                   ); // Ne întoarcem la pagina anterioară
                                 }
                               } catch (e) {
@@ -332,6 +354,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                                   ),
                                 );
                               }
+                              print(user.incomes.last.title);
                             }
                           },
                           style: ElevatedButton.styleFrom(

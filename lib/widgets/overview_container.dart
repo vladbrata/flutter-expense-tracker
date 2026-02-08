@@ -89,8 +89,8 @@ class _OverviewContainerState extends State<OverviewContainer> {
                                 ],
                               ),
                             ),
-                            const Text(
-                              "12000 RON",
+                            Text(
+                              user?.getIncome().toString() ?? '0.00',
                               style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
@@ -139,8 +139,8 @@ class _OverviewContainerState extends State<OverviewContainer> {
                                 ],
                               ),
                             ),
-                            const Text(
-                              "120.00",
+                            Text(
+                              user?.getExpense().toString() ?? '0.00',
                               style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,

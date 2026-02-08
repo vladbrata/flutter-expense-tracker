@@ -6,7 +6,7 @@ class AppColors {
   static const Color surface = Color(0xFF1E2228); // Culoarea pentru containere
   static const Color globalAccentColor = Color(0xFF00C853);
   static const Color globalTextMainColor = Colors.white;
-  static const Color globalTextSecondaryColor = Colors.grey;
+  static const Color globalTextSecondaryColor = Colors.black;
 }
 
 class AppSpacing {
