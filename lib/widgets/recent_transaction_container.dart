@@ -1,3 +1,4 @@
+import 'package:expense_tracker/pages/see_all_transactions_page.dart';
 import 'package:expense_tracker/services/user_class.dart';
 import 'package:expense_tracker/style/app_styles.dart';
 import 'package:expense_tracker/widgets/recent_transaction_widget.dart.dart';
@@ -11,7 +12,7 @@ class RecentTransactionContainer extends StatelessWidget {
   Widget build(BuildContext context) {
     final user = Provider.of<MyUser?>(context);
     return Container(
-      height: 310,
+      height: 330,
       width: double.infinity,
       // margin: const EdgeInsets.symmetric(vertical: 20),
       padding: const EdgeInsets.all(20),
@@ -31,19 +32,39 @@ class RecentTransactionContainer extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text(
-                'Recent Transactions',
-                style: TextStyle(
-                  color: AppColors.globalTextMainColor,
-                  fontSize: 20,
+              TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => SeeAllTransactionsPage(),
+                    ),
+                  );
+                },
+                child: Text(
+                  'Recent Transactions',
+                  style: TextStyle(
+                    color: AppColors.globalTextMainColor,
+                    fontSize: 20,
+                  ),
                 ),
               ),
               const Spacer(),
-              Text(
-                'See all',
-                style: TextStyle(
-                  color: AppColors.globalAccentColor,
-                  fontSize: 16,
+              TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => SeeAllTransactionsPage(),
+                    ),
+                  );
+                },
+                child: Text(
+                  'See all',
+                  style: TextStyle(
+                    color: AppColors.globalAccentColor,
+                    fontSize: 16,
+                  ),
                 ),
               ),
             ],

@@ -9,6 +9,7 @@ class Expense {
   // final String category;
   // final String type;
   final String userId;
+  final String comment;
 
   Expense({
     required this.date,
@@ -19,6 +20,7 @@ class Expense {
     // required this.category,
     // required this.type,
     required this.userId,
+    required this.comment,
   });
 }
 
@@ -31,6 +33,7 @@ class Income {
   // final String category;
   // final String type;
   final String userId;
+  final String comment;
 
   Income({
     required this.date,
@@ -41,5 +44,6 @@ class Income {
     // required this.category,
     // required this.type,
     required this.userId,
+    required this.comment,
   });
 }

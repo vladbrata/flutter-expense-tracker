@@ -78,6 +78,7 @@ class DBService {
     required double amount,
     required String title,
     required String date,
+    required String comment,
   }) async {
     try {
       // Referință către users -> UID -> incomes
@@ -91,6 +92,7 @@ class DBService {
         'amount': amount,
         'title': title,
         'date': date,
+        'comment': comment,
       });
 
       print("✅ $transactionType salvat cu succes!");
@@ -211,6 +213,8 @@ class DBService {
                   String parsedTitle =
                       value['title']?.toString() ?? "Fără titlu";
                   DateTime parsedDate = DateTime.parse(value['date']);
+                  String parsedDescription =
+                      value['comment']?.toString() ?? "Fără descriere";
 
                   loadedExpenses.add(
                     Expense(
@@ -219,6 +223,7 @@ class DBService {
                       amount: parsedAmount,
                       title: parsedTitle,
                       date: parsedDate,
+                      comment: parsedDescription,
                     ),
                   );
                   print(
@@ -255,6 +260,8 @@ class DBService {
                   String parsedTitle =
                       value['title']?.toString() ?? "Fără titlu";
                   DateTime parsedDate = DateTime.parse(value['date']);
+                  String parsedDescription =
+                      value['comment']?.toString() ?? "Fără descriere";
 
                   loadedIncomes.add(
                     Income(
@@ -263,10 +270,11 @@ class DBService {
                       amount: parsedAmount,
                       title: parsedTitle,
                       date: parsedDate,
+                      comment: parsedDescription,
                     ),
                   );
                   print(
-                    "   ✅ Adăugat cu succes: $parsedTitle ($parsedAmount) la data de $parsedDate",
+                    "   ✅ Adăugat cu succes: $parsedTitle adica ($parsedDescription) ($parsedAmount) la data de $parsedDate",
                   );
                 } catch (e) {
                   print("   ⚠️ Eroare parsare la ID $key: $e");

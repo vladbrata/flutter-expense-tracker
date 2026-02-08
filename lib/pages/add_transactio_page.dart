@@ -21,6 +21,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
   String _selectedCategory = "";
   DateTime _selectedDate = DateTime.now(); // Variabilă pentru data selectată
   TextEditingController amountController = TextEditingController();
+  TextEditingController descriptionController = TextEditingController();
 
   // Funcție pentru deschiderea calendarului în stilul aplicației
   Future<void> _selectDate(BuildContext context) async {
@@ -230,8 +231,55 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                         ),
                       ),
                     ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 20.0,
+                        horizontal: 15,
+                      ),
+                      child: Container(
+                        height: 40,
+                        width: double.infinity,
+                        child: Center(
+                          child: TextField(
+                            controller: descriptionController,
+                            decoration: InputDecoration(
+                              labelText: 'Add a Description',
+                              labelStyle: TextStyle(
+                                color: AppColors.globalTextMainColor,
+                              ),
 
-                    const SizedBox(height: 30),
+                              // Border-ul normal
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+
+                              // Border-ul când este apăsat
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(20),
+                                borderSide: BorderSide(
+                                  color: AppColors.globalAccentColor,
+                                  width: 2.0,
+                                ),
+                              ),
+
+                              // 2. STILUL PENTRU EROARE (Red text & Red border)
+                              errorStyle: const TextStyle(color: Colors.red),
+                              errorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(20),
+                                borderSide: const BorderSide(color: Colors.red),
+                              ),
+                              focusedErrorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(20),
+                                borderSide: const BorderSide(
+                                  color: Colors.red,
+                                  width: 2.0,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
 
                     // Buton Salvare
                     Padding(
@@ -284,6 +332,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
           title: _selectedCategory,
           transactionType: type,
           date: _selectedDate.toIso8601String(),
+          comment: descriptionController.text.trim(),
         );
 
         // Adăugare locală pentru refresh instant
@@ -295,6 +344,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
               amount: amount,
               title: _selectedCategory,
               date: _selectedDate,
+              comment: descriptionController.text.trim(),
             ),
           );
         } else {
@@ -305,6 +355,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
               amount: amount,
               title: _selectedCategory,
               date: _selectedDate,
+              comment: descriptionController.text.trim(),
             ),
           );
         }
