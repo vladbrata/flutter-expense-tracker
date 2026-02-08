@@ -1,3 +1,6 @@
+import 'dart:collection';
+import 'dart:ffi';
+
 import 'package:expense_tracker/services/category_class.dart';
 import 'package:expense_tracker/services/transaction_service.dart';
 import 'package:flutter/material.dart';
@@ -10,6 +13,15 @@ class MyUser {
   List<MyCategory> categories = [];
   List<Expense> expenses = []; // Lista globală cheltuieli
   List<Income> incomes = []; // Lista globală venituri
+  List<dynamic> get allTransactions {
+    // Combinăm listele
+    List<dynamic> combined = [...expenses, ...incomes];
+
+    // Sortăm descrescător (cele mai noi primele)
+    combined.sort((a, b) => b.date.compareTo(a.date));
+
+    return combined;
+  }
 
   MyUser({required this.email, required this.name, required this.uid});
   factory MyUser.fromMap(Map<dynamic, dynamic> data, String uid) {

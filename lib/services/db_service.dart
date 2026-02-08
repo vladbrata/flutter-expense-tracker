@@ -77,6 +77,7 @@ class DBService {
     required String uid,
     required double amount,
     required String title,
+    required String date,
   }) async {
     try {
       // Referință către users -> UID -> incomes
@@ -86,7 +87,11 @@ class DBService {
           .child(transactionType);
 
       // Generăm un ID unic pentru această tranzacție
-      await _incomeRef.push().set({'amount': amount, 'title': title});
+      await _incomeRef.push().set({
+        'amount': amount,
+        'title': title,
+        'date': date,
+      });
 
       print("✅ $transactionType salvat cu succes!");
     } catch (e) {
@@ -205,6 +210,7 @@ class DBService {
                       double.tryParse(value['amount'].toString()) ?? 0.0;
                   String parsedTitle =
                       value['title']?.toString() ?? "Fără titlu";
+                  DateTime parsedDate = DateTime.parse(value['date']);
 
                   loadedExpenses.add(
                     Expense(
@@ -212,9 +218,12 @@ class DBService {
                       userId: user.uid,
                       amount: parsedAmount,
                       title: parsedTitle,
+                      date: parsedDate,
                     ),
                   );
-                  print("   ✅ Adăugat cu succes: $parsedTitle ($parsedAmount)");
+                  print(
+                    "   ✅ Adăugat cu succes: $parsedTitle ($parsedAmount) la data de $parsedDate",
+                  );
                 } catch (e) {
                   print("   ⚠️ Eroare parsare la ID $key: $e");
                 }
@@ -245,6 +254,7 @@ class DBService {
                       double.tryParse(value['amount'].toString()) ?? 0.0;
                   String parsedTitle =
                       value['title']?.toString() ?? "Fără titlu";
+                  DateTime parsedDate = DateTime.parse(value['date']);
 
                   loadedIncomes.add(
                     Income(
@@ -252,9 +262,12 @@ class DBService {
                       userId: user.uid,
                       amount: parsedAmount,
                       title: parsedTitle,
+                      date: parsedDate,
                     ),
                   );
-                  print("   ✅ Adăugat cu succes: $parsedTitle ($parsedAmount)");
+                  print(
+                    "   ✅ Adăugat cu succes: $parsedTitle ($parsedAmount) la data de $parsedDate",
+                  );
                 } catch (e) {
                   print("   ⚠️ Eroare parsare la ID $key: $e");
                 }

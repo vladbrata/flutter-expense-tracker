@@ -1,31 +1,32 @@
+import 'package:expense_tracker/services/transaction_service.dart';
 import 'package:expense_tracker/services/user_class.dart';
 import 'package:expense_tracker/style/app_styles.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 class RecentTransactionWidget extends StatelessWidget {
-  const RecentTransactionWidget({
-    Key? key,
-    required this.title,
-    required this.amount,
-  }) : super(key: key);
-  final String title;
-  final double amount;
+  const RecentTransactionWidget({Key? key, required this.transaction})
+    : super(key: key);
+  final dynamic transaction;
 
   @override
   Widget build(BuildContext context) {
-    final user = Provider.of<MyUser?>(context);
+    // Verificăm tipul tranzacției pentru a seta culorile
+    final bool isIncome = transaction is Income;
+    final Color mainColor = isIncome ? Colors.green : Colors.red;
 
-    String? type = 'Income';
+    // Extragem data tranzacției
+    final DateTime date = transaction.date;
+
     return Padding(
-      padding: const EdgeInsets.only(top: 20),
+      padding: const EdgeInsets.only(top: 15),
       child: Container(
-        height: 50,
+        height: 65, // Am mărit puțin înălțimea pentru a face loc datei
         width: double.infinity,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
-          color: type == 'Income' ? Colors.green : Colors.red,
-          boxShadow: [
+          color: mainColor,
+          boxShadow: const [
             BoxShadow(
               color: Colors.black26,
               blurRadius: 10,
@@ -37,28 +38,47 @@ class RecentTransactionWidget extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 15),
           child: Row(
             children: [
+              // Iconița de direcție
               Padding(
                 padding: const EdgeInsets.only(right: 15),
                 child: Icon(
-                  type == 'Income' ? Icons.arrow_upward : Icons.arrow_downward,
+                  isIncome ? Icons.arrow_upward : Icons.arrow_downward,
                   color: Colors.white,
                 ),
               ),
-              Text(
-                title,
-                style: TextStyle(
-                  color: type == 'Income'
-                      ? Colors.white
-                      : AppColors.globalTextSecondaryColor,
-                ),
+
+              // Coloana pentru Titlu și Dată
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    transaction.title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  Text(
+                    "${date.day}.${date.month}.${date.year}",
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.8),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
               ),
+
               const Spacer(),
+
+              // Suma tranzacției
               Text(
-                amount.toString(),
-                style: TextStyle(
-                  color: type == 'Income'
-                      ? Colors.white
-                      : AppColors.globalTextSecondaryColor,
+                "${isIncome ? '+' : '-'}${transaction.amount} RON",
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
                 ),
               ),
             ],

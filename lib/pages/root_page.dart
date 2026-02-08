@@ -56,9 +56,9 @@ class _RootPageState extends State<RootPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (_dataFetchFuture == null) {
-      return const LoadingPage();
-    }
+    // if (_dataFetchFuture == null) {
+    //   return const LoadingPage();
+    // }
 
     return FutureBuilder(
       future: _dataFetchFuture,

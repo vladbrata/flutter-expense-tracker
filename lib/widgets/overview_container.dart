@@ -48,7 +48,9 @@ class _OverviewContainerState extends State<OverviewContainer> {
                   style: TextStyle(
                     fontSize: 40,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.globalTextMainColor,
+                    color: user!.getBalance() < 0
+                        ? Colors.red
+                        : AppColors.globalTextMainColor,
                   ),
                 ),
                 const Spacer(),

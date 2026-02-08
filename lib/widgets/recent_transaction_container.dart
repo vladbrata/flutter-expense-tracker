@@ -11,7 +11,7 @@ class RecentTransactionContainer extends StatelessWidget {
   Widget build(BuildContext context) {
     final user = Provider.of<MyUser?>(context);
     return Container(
-      height: 300,
+      height: 310,
       width: double.infinity,
       // margin: const EdgeInsets.symmetric(vertical: 20),
       padding: const EdgeInsets.all(20),
@@ -48,17 +48,21 @@ class RecentTransactionContainer extends StatelessWidget {
               ),
             ],
           ),
-          RecentTransactionWidget(
-            title: user?.incomes[0].title ?? '',
-            amount: user?.incomes[0].amount ?? 0,
-          ),
-          RecentTransactionWidget(
-            title: user?.expenses[0].title ?? '',
-            amount: user?.expenses[0].amount ?? 0,
-          ),
-          RecentTransactionWidget(
-            title: user?.expenses[0].title ?? '',
-            amount: user?.expenses[0].amount ?? 0,
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            // Luăm tranzacțiile, le inversăm și le transformăm în listă, apoi luăm primele 3
+            itemCount: (user?.allTransactions.length ?? 0) > 3
+                ? 3
+                : (user?.allTransactions.length ?? 0),
+            itemBuilder: (context, index) {
+              // Inversăm lista aici pentru a avea ultima tranzacție la index 0
+              final reversedList =
+                  user?.allTransactions.reversed.toList() ?? [];
+              final transaction = reversedList[index];
+
+              return RecentTransactionWidget(transaction: transaction);
+            },
           ),
         ],
       ),
