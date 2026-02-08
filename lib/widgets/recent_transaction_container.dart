@@ -12,7 +12,6 @@ class RecentTransactionContainer extends StatelessWidget {
   Widget build(BuildContext context) {
     final user = Provider.of<MyUser?>(context);
     return Container(
-      height: 330,
       width: double.infinity,
       // margin: const EdgeInsets.symmetric(vertical: 20),
       padding: const EdgeInsets.all(20),

@@ -36,19 +36,31 @@ class _OverviewContainerState extends State<OverviewContainer> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Total Balance',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppColors.globalTextMainColor,
-                  ),
+                Row(
+                  children: [
+                    const Text(
+                      'Total Balance',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.globalTextMainColor,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      'This month',
+                      style: TextStyle(
+                        color: AppColors.globalAccentColor,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
                 ),
                 Text(
-                  user?.getBalance().toString() ?? '0.00',
+                  user?.getMonthlyBalance().toString() ?? '0.00',
                   style: TextStyle(
                     fontSize: 40,
                     fontWeight: FontWeight.bold,
-                    color: user!.getBalance() < 0
+                    color: user!.getMonthlyBalance() < 0
                         ? Colors.red
                         : AppColors.globalTextMainColor,
                   ),
@@ -92,7 +104,17 @@ class _OverviewContainerState extends State<OverviewContainer> {
                               ),
                             ),
                             Text(
-                              user?.getIncome().toString() ?? '0.00',
+                              user!
+                                      .getTotalIncomeInTimeframe(
+                                        DateTime(
+                                          DateTime.now().year,
+                                          DateTime.now().month,
+                                          1,
+                                        ),
+                                        DateTime.now(),
+                                      )
+                                      .toString() ??
+                                  '0.00',
                               style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
@@ -142,7 +164,17 @@ class _OverviewContainerState extends State<OverviewContainer> {
                               ),
                             ),
                             Text(
-                              user?.getExpense().toString() ?? '0.00',
+                              user!
+                                      .getTotalExpenseInTimeframe(
+                                        DateTime(
+                                          DateTime.now().year,
+                                          DateTime.now().month,
+                                          1,
+                                        ),
+                                        DateTime.now(),
+                                      )
+                                      .toString() ??
+                                  '0.00',
                               style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,

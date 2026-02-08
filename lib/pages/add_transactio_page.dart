@@ -241,37 +241,25 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                         width: double.infinity,
                         child: Center(
                           child: TextField(
+                            style: TextStyle(
+                              color: AppColors.globalTextMainColor,
+                            ),
                             controller: descriptionController,
                             decoration: InputDecoration(
                               labelText: 'Add a Description',
+
                               labelStyle: TextStyle(
                                 color: AppColors.globalTextMainColor,
                               ),
-
                               // Border-ul normal
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(20),
                               ),
-
                               // Border-ul când este apăsat
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(20),
                                 borderSide: BorderSide(
                                   color: AppColors.globalAccentColor,
-                                  width: 2.0,
-                                ),
-                              ),
-
-                              // 2. STILUL PENTRU EROARE (Red text & Red border)
-                              errorStyle: const TextStyle(color: Colors.red),
-                              errorBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(20),
-                                borderSide: const BorderSide(color: Colors.red),
-                              ),
-                              focusedErrorBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(20),
-                                borderSide: const BorderSide(
-                                  color: Colors.red,
                                   width: 2.0,
                                 ),
                               ),
