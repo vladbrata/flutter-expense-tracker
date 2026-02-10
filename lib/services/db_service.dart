@@ -3,7 +3,6 @@ import 'package:expense_tracker/services/transaction_service.dart';
 import 'package:expense_tracker/services/user_class.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
-
 import 'package:flutter/material.dart';
 
 class DBService {
@@ -12,22 +11,23 @@ class DBService {
     databaseURL:
         'https://expense-tracker-8b7eb-default-rtdb.europe-west1.firebasedatabase.app/',
   ).ref();
+
   Future<void> saveUser({
     required String uid,
     required String name,
     required String email,
   }) async {
-    // Verifică dacă instanța _firebaseDatabase are URL-ul de Belgia configurat!
     await _firebaseDatabase.child('users').child(uid).child('profile').set({
       'name': name,
       'email': email,
     });
   }
 
-  // În DBService
   Stream<MyUser?> getUserStream(String uid) {
     // 1. Facem referință către nodul 'profile' al utilizatorului specific
+
     // Structura în Firebase: users -> {uid} -> profile
+
     return _firebaseDatabase
         .child('users')
         .child(uid)
@@ -35,17 +35,22 @@ class DBService {
         .onValue
         .map((event) {
           // 2. Extragem datele brute din snapshot
+
           final data = event.snapshot.value;
 
           // 3. Verificăm dacă există date la acea locație
+
           if (data == null) {
             print("⚠️ [DBService] Nu s-au găsit date la users/$uid/profile");
+
             return null;
           }
 
           try {
             // 4. Convertim datele brute (Map) în obiectul MyUser
+
             // Realtime Database returnează Map<Object?, Object?>, deci forțăm conversia
+
             final Map<dynamic, dynamic> userMap = data as Map<dynamic, dynamic>;
 
             return MyUser.fromMap(userMap, uid);
@@ -53,25 +58,13 @@ class DBService {
             print(
               "❌ [DBService] Eroare la maparea datelor pentru UID $uid: $e",
             );
+
             return null;
           }
         });
   }
 
-  Future<DataSnapshot?> read(String path) async {
-    final DatabaseReference ref = _firebaseDatabase.child(path);
-    final DataSnapshot snapshot = await ref.get();
-    return snapshot.exists ? snapshot : null;
-  }
-
-  Stream<MyUser?> getUserData(String uid) {
-    return _firebaseDatabase.child('users').child(uid).onValue.map((event) {
-      final data = event.snapshot.value as Map?;
-      if (data == null) return null;
-      return MyUser.fromMap(data, uid);
-    });
-  }
-
+  // --- SALVARE TRANZACȚIE CU OBIECT CATEGORY COMPLET ---
   Future<void> saveTransaction({
     required String transactionType,
     required String uid,
@@ -79,245 +72,186 @@ class DBService {
     required String title,
     required String date,
     required String comment,
+    required MyCategory category,
   }) async {
     try {
-      // Referință către users -> UID -> incomes
-      final DatabaseReference _incomeRef = _firebaseDatabase
+      final DatabaseReference transactionRef = _firebaseDatabase
           .child('users')
           .child(uid)
           .child(transactionType);
 
-      // Generăm un ID unic pentru această tranzacție
-      await _incomeRef.push().set({
+      await transactionRef.push().set({
         'amount': amount,
         'title': title,
         'date': date,
         'comment': comment,
+        'category': {
+          'id': category.id,
+          'name': category.name,
+          'icon': category.icon.codePoint.toString(),
+          'type': category.type,
+          'color': category.color.value.toString(),
+        },
       });
 
-      print("✅ $transactionType salvat cu succes!");
+      print("✅ $transactionType salvat cu succes cu obiect category!");
     } catch (e) {
       print("❌ Eroare la salvarea $transactionType: $e");
       rethrow;
     }
   }
 
-  Future<void> addNewCategory(MyCategory newCat, MyUser user) async {
-    // 1. Adăugăm în lista locală
-    user.categories.add(newCat);
-
-    // 2. Salvăm în baza de date conform schemei tale
-    // 2. Salvăm în baza de date folosind instanța corectă (_firebaseDatabase)
-    // Folosim push() pentru a crea un nod nou cu ID unic, pentru a nu suprascrie toate categoriile
-    await _firebaseDatabase
-        .child("users")
-        .child(user.uid)
-        .child("category")
-        .push()
-        .set({
-          "name": newCat.name,
-          "type": newCat.type,
-          "icon": newCat.icon.codePoint.toString(),
-          "color": newCat.color.value
-              .toString(), // Salvăm valoarea int a culorii pentru a fi mai ușor de reconstruit
-        });
-  }
-
-  Future<void> fetchCategories(MyUser user) async {
-    // Folosirea instanței corecte
-    DatabaseReference ref = _firebaseDatabase
-        .child("users")
-        .child(user.uid)
-        .child("category");
-
-    try {
-      DataSnapshot snapshot = await ref.get();
-
-      if (snapshot.exists) {
-        print("✅ Categorii găsite în baza de date.");
-        List<MyCategory> loadedCategories = [];
-
-        // Verificăm structura datelor
-        if (snapshot.value is Map) {
-          Map<dynamic, dynamic> data = snapshot.value as Map<dynamic, dynamic>;
-
-          data.forEach((key, value) {
-            // Verificăm dacă value este Map (structure corectă)
-            if (value is Map) {
-              try {
-                loadedCategories.add(
-                  MyCategory(
-                    id: key,
-                    name: value['name'],
-                    type: value['type'],
-                    // Convertim string-ul înapoi în IconData
-                    icon: IconData(
-                      int.parse(value['icon']),
-                      fontFamily: 'MaterialIcons',
-                    ),
-                    // Convertim string-ul (int value) înapoi în Color
-                    color: Color(int.parse(value['color'])),
-                  ),
-                );
-              } catch (e) {
-                print("⚠️ Eroare la parsarea unei categorii: $e");
-              }
-            }
-          });
-        }
-
-        user.categories = loadedCategories;
-        print("✅ Am descărcat ${loadedCategories.length} categorii.");
-      } else {
-        print("ℹ️ Nu există categorii în baza de date.");
-      }
-    } catch (e) {
-      print("❌ Eroare la descărcare categorii: $e");
-    }
-  }
-
+  // --- FETCH USER DATA (EXPENSES & INCOME) ---
   Future<void> fetchUserData(MyUser user) async {
     DatabaseReference ref = _firebaseDatabase.child("users").child(user.uid);
 
     try {
-      print("🚀 Pas 1: Încep fetch-ul pentru UID: ${user.uid}");
-
+      print("🚀 Încep fetch-ul pentru UID: ${user.uid}");
       DataSnapshot snapshot = await ref.get().timeout(
         const Duration(seconds: 10),
-        onTimeout: () {
-          print("🛑 TIMEOUT: Firebase nu a răspuns în 10 secunde.");
-          throw Exception("⏰ Conexiunea la Firebase a expirat (Timeout)!");
-        },
       );
 
-      if (snapshot.exists) {
-        print("✅ Pas 2: Snapshot primit. Date brute: ${snapshot.value}");
+      if (snapshot.exists && snapshot.value is Map) {
+        Map<dynamic, dynamic> userData =
+            snapshot.value as Map<dynamic, dynamic>;
 
-        if (snapshot.value is Map) {
-          Map<dynamic, dynamic> userData =
-              snapshot.value as Map<dynamic, dynamic>;
-          print("📂 Pas 3: Noduri detectate: ${userData.keys.toList()}");
-
-          // --- 1. PROCESARE CHELTUIELI (expenses) ---
-          if (userData['expenses'] != null && userData['expenses'] is Map) {
-            print("💰 Pas 4: Detectat nod 'expenses'. Încep parsarea...");
-            List<Expense> loadedExpenses = [];
-            Map<dynamic, dynamic> expensesData = userData['expenses'];
-            print("📊 Număr intrări brute expenses: ${expensesData.length}");
-
-            expensesData.forEach((key, value) {
-              print("🔍 Analizez cheltuiala ID: $key");
-              if (value is Map) {
-                try {
-                  double parsedAmount =
-                      double.tryParse(value['amount'].toString()) ?? 0.0;
-                  String parsedTitle =
-                      value['title']?.toString() ?? "Fără titlu";
-                  DateTime parsedDate = DateTime.parse(value['date']);
-                  String parsedDescription =
-                      value['comment']?.toString() ?? "Fără descriere";
-
-                  loadedExpenses.add(
-                    Expense(
-                      id: key.toString(),
-                      userId: user.uid,
-                      amount: parsedAmount,
-                      title: parsedTitle,
-                      date: parsedDate,
-                      comment: parsedDescription,
-                    ),
-                  );
-                  print(
-                    "   ✅ Adăugat cu succes: $parsedTitle ($parsedAmount) la data de $parsedDate",
-                  );
-                } catch (e) {
-                  print("   ⚠️ Eroare parsare la ID $key: $e");
-                }
-              } else {
-                print("   ⚠️ Valoarea pentru $key nu este un Map!");
-              }
-            });
-            user.expenses = loadedExpenses;
-            print(
-              "📌 Finalizat expenses. Total în user.expenses: ${user.expenses.length}",
-            );
-          } else {
-            print("ℹ️ Nodul 'expenses' lipsește sau nu este un Map.");
-          }
-
-          // --- 2. PROCESARE VENITURI (income) ---
-          if (userData['income'] != null && userData['income'] is Map) {
-            print("📈 Pas 5: Detectat nod 'income'. Încep parsarea...");
-            List<Income> loadedIncomes = [];
-            Map<dynamic, dynamic> incomeData = userData['income'];
-            print("📊 Număr intrări brute income: ${incomeData.length}");
-
-            incomeData.forEach((key, value) {
-              print("🔍 Analizez venitul ID: $key");
-              if (value is Map) {
-                try {
-                  double parsedAmount =
-                      double.tryParse(value['amount'].toString()) ?? 0.0;
-                  String parsedTitle =
-                      value['title']?.toString() ?? "Fără titlu";
-                  DateTime parsedDate = DateTime.parse(value['date']);
-                  String parsedDescription =
-                      value['comment']?.toString() ?? "Fără descriere";
-
-                  loadedIncomes.add(
-                    Income(
-                      id: key.toString(),
-                      userId: user.uid,
-                      amount: parsedAmount,
-                      title: parsedTitle,
-                      date: parsedDate,
-                      comment: parsedDescription,
-                    ),
-                  );
-                  print(
-                    "   ✅ Adăugat cu succes: $parsedTitle adica ($parsedDescription) ($parsedAmount) la data de $parsedDate",
-                  );
-                } catch (e) {
-                  print("   ⚠️ Eroare parsare la ID $key: $e");
-                }
-              } else {
-                print("   ⚠️ Valoarea pentru $key nu este un Map!");
-              }
-            });
-            user.incomes = loadedIncomes;
-            print(
-              "📌 Finalizat income. Total în user.incomes: ${user.incomes.length}",
-            );
-          } else {
-            print("ℹ️ Nodul 'income' lipsește sau nu este un Map.");
-          }
-        } else {
-          print(
-            "⚠️ snapshot.value nu este un Map. Tip găsit: ${snapshot.value.runtimeType}",
+        // 1. PROCESARE EXPENSES
+        if (userData['expenses'] != null) {
+          user.expenses = _parseTransactions<Expense>(
+            userData['expenses'],
+            user.uid,
+            (id, map) => Expense(
+              id: id,
+              userId: user.uid,
+              amount: double.tryParse(map['amount'].toString()) ?? 0.0,
+              title: map['title'] ?? "",
+              date: DateTime.parse(map['date']),
+              comment: map['comment'] ?? "",
+              category: _parseCategory(map['category']),
+            ),
           );
         }
-      } else {
-        print("⚠️ Snapshot-ul nu există pentru calea specificată.");
-      }
 
+        // 2. PROCESARE INCOME
+        if (userData['income'] != null) {
+          user.incomes = _parseTransactions<Income>(
+            userData['income'],
+            user.uid,
+            (id, map) => Income(
+              id: id,
+              userId: user.uid,
+              amount: double.tryParse(map['amount'].toString()) ?? 0.0,
+              title: map['title'] ?? "",
+              date: DateTime.parse(map['date']),
+              comment: map['comment'] ?? "",
+              category: _parseCategory(map['category']),
+            ),
+          );
+        }
+      }
       print(
-        "🏁 FINAL: User are ${user.expenses.length} cheltuieli și ${user.incomes.length} venituri în liste.",
+        "🏁 FINAL: ${user.expenses.length} cheltuieli și ${user.incomes.length} venituri.",
       );
     } catch (e) {
-      print("❌ EROARE CRITICĂ: $e");
+      print("❌ EROARE FETCH: $e");
+    }
+  }
+
+  // --- UTILS PENTRU PARSARE (LOGICĂ REUTILIZABILĂ) ---
+  List<T> _parseTransactions<T>(
+    dynamic data,
+    String uid,
+    T Function(String id, Map map) creator,
+  ) {
+    List<T> list = [];
+    if (data is Map) {
+      data.forEach((key, value) {
+        if (value is Map) {
+          try {
+            list.add(creator(key.toString(), value));
+          } catch (e) {
+            print("⚠️ Eroare parsare tranzactie $key: $e");
+          }
+        }
+      });
+    }
+    return list;
+  }
+
+  MyCategory _parseCategory(dynamic catData) {
+    if (catData != null && catData is Map) {
+      return MyCategory(
+        id: catData['id'] ?? "",
+        name: catData['name'] ?? "Unknown",
+        type: catData['type'] ?? "Expense",
+        icon: IconData(
+          int.parse(catData['icon'] ?? "57585"), // Default icon if missing
+          fontFamily: 'MaterialIcons',
+        ),
+        color: Color(int.parse(catData['color'] ?? "0xFFFFFFFF")),
+      );
+    }
+    // Fallback în caz că datele sunt vechi (Legacy Support)
+    return MyCategory(
+      id: "legacy",
+      name: "Old Category",
+      type: "Expense",
+      icon: Icons.help_outline,
+      color: Colors.grey,
+    );
+  }
+
+  // --- CATEGORII ---
+  Future<void> addNewCategory(MyCategory newCat, MyUser user) async {
+    await _firebaseDatabase
+        .child("users")
+        .child(user.uid)
+        .child("category")
+        .child(newCat.id) // Folosim ID-ul generat deja în UI
+        .set({
+          "name": newCat.name,
+          "type": newCat.type,
+          "icon": newCat.icon.codePoint.toString(),
+          "color": newCat.color.value.toString(),
+        });
+  }
+
+  Future<void> fetchCategories(MyUser user) async {
+    try {
+      DataSnapshot snapshot = await _firebaseDatabase
+          .child("users")
+          .child(user.uid)
+          .child("category")
+          .get();
+
+      if (snapshot.exists && snapshot.value is Map) {
+        Map<dynamic, dynamic> data = snapshot.value as Map<dynamic, dynamic>;
+        user.categories = data.entries.map((e) {
+          return MyCategory(
+            id: e.key,
+            name: e.value['name'],
+            type: e.value['type'],
+            icon: IconData(
+              int.parse(e.value['icon']),
+              fontFamily: 'MaterialIcons',
+            ),
+            color: Color(int.parse(e.value['color'])),
+          );
+        }).toList();
+      }
+    } catch (e) {
+      print("❌ Eroare fetch categorii: $e");
     }
   }
 
   Future<void> deleteCategory(String uid, String categoryId) async {
     try {
-      // Folosim instanța _db definită mai sus
-      DatabaseReference ref = _firebaseDatabase
+      await _firebaseDatabase
           .child("users")
           .child(uid)
           .child("category")
-          .child(categoryId);
-      await ref.remove();
-      print("✅ Șters cu succes din regiunea Europe");
+          .child(categoryId)
+          .remove();
     } catch (e) {
       print("❌ Eroare la ștergere: $e");
       rethrow;

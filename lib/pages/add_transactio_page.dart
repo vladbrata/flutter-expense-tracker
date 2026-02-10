@@ -4,7 +4,6 @@ import 'package:expense_tracker/services/db_service.dart';
 import 'package:expense_tracker/services/user_class.dart';
 import 'package:expense_tracker/style/app_styles.dart';
 import 'package:expense_tracker/widgets/category_container.dart';
-import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -19,13 +18,32 @@ class AddTransactionPage extends StatefulWidget {
 class _AddTransactionPageState extends State<AddTransactionPage> {
   bool _isExpense = true;
   bool _isIncome = false;
-  String _selectedCategory = "";
+
+  MyCategory? _selectedCategoryObject;
+  String _selectedCategoryName = "";
+
   DateTime _selectedDate = DateTime.now();
 
   final TextEditingController amountController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
 
   Future<void>? _categoriesFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    // Adăugăm un listener pentru a forța UI-ul să se updateze când utilizatorul tastează suma
+    amountController.addListener(() {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    amountController.dispose();
+    descriptionController.dispose();
+    super.dispose();
+  }
 
   @override
   void didChangeDependencies() {
@@ -36,7 +54,6 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
     }
   }
 
-  // --- LOGICA ȘTERGERE CATEGORIE ---
   void _showDeleteDialog(MyUser user, MyCategory cat) {
     showDialog(
       context: context,
@@ -52,12 +69,10 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
           style: const TextStyle(color: Colors.white70),
         ),
         actions: [
-          // Buton Cancel
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
           ),
-          // Buton Delete
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.redAccent,
@@ -66,45 +81,27 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
               ),
             ),
             onPressed: () async {
-              // DEBUG: Verificăm în consolă dacă avem ID-ul necesar
-              print("--- LOGICĂ ȘTERGERE ---");
-              print("ID Categorie: ${cat.id}");
-              print("Nume Categorie: ${cat.name}");
-
               if (cat.id.isNotEmpty) {
-                print("✅ ID valid, ștergem din Firebase...");
                 try {
-                  // 1. Ștergere din Firebase
                   await DBService()
                       .deleteCategory(user.uid, cat.id)
                       .timeout(const Duration(seconds: 5));
-                  print("✅ Șters din Firebase");
 
-                  // 2. Închidem dialogul
                   if (mounted) Navigator.pop(context);
 
-                  // 3. Update UI local - ACESTA face refresh-ul vizual
                   setState(() {
-                    // Eliminăm din lista locală a utilizatorului
                     user.categories.removeWhere(
                       (element) => element.id == cat.id,
                     );
-
-                    // Dacă era categoria selectată, resetăm selecția
-                    if (_selectedCategory == cat.name) {
-                      _selectedCategory = "";
+                    if (_selectedCategoryName == cat.name) {
+                      _selectedCategoryName = "";
+                      _selectedCategoryObject = null;
                     }
                   });
-
-                  print("✅ UI Actualizat local");
                 } catch (e) {
-                  print("❌ Eroare la ștergere: $e");
+                  debugPrint("❌ Eroare la ștergere: $e");
                 }
               } else {
-                print(
-                  "⚠️ Eroare: Categoria nu are ID (este o categorie veche)",
-                );
-                // Chiar dacă n-are ID în DB, o scoatem din listă să nu o mai vadă userul
                 setState(() {
                   user.categories.removeWhere(
                     (element) => element.name == cat.name,
@@ -163,10 +160,8 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              // Selector Tip Tranzactie
               _buildTypeSelector(),
               const SizedBox(height: 20),
-
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 15),
                 padding: const EdgeInsets.only(bottom: 20),
@@ -179,8 +174,6 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                     const SizedBox(height: 20),
                     _buildAmountInput(),
                     const SizedBox(height: 30),
-
-                    // Sectiune Categorii
                     const Padding(
                       padding: EdgeInsets.only(left: 15.0),
                       child: Align(
@@ -192,7 +185,6 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                       ),
                     ),
                     _buildCategoriesContent(user),
-
                     const SizedBox(height: 20),
                     _buildDatePickerBtn(),
                     const SizedBox(height: 20),
@@ -224,6 +216,8 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
             () => setState(() {
               _isExpense = true;
               _isIncome = false;
+              _selectedCategoryObject = null;
+              _selectedCategoryName = "";
             }),
           ),
           _typeBtn(
@@ -232,6 +226,8 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
             () => setState(() {
               _isExpense = false;
               _isIncome = true;
+              _selectedCategoryObject = null;
+              _selectedCategoryName = "";
             }),
           ),
         ],
@@ -262,8 +258,10 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
           width: 120,
           child: TextField(
             controller: amountController,
-            keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+            ],
             style: const TextStyle(color: Colors.white, fontSize: 28),
             textAlign: TextAlign.center,
             decoration: const InputDecoration(
@@ -315,12 +313,27 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
               return _addCategoryBtn(user);
             }
             final cat = filtered[index];
+            final bool isSelected =
+                cat.id == _selectedCategoryObject?.id ||
+                cat.name == _selectedCategoryName;
+
             return GestureDetector(
               onLongPress: () => _showDeleteDialog(user!, cat),
+              onTap: () {
+                setState(() {
+                  _selectedCategoryName = cat.name;
+                  _selectedCategoryObject = cat;
+                });
+              },
               child: CategoryContainer(
                 category: cat,
-                isSelected: cat.name == _selectedCategory,
-                onTap: () => setState(() => _selectedCategory = cat.name),
+                isSelected: isSelected, // Acesta va colora iconița/bordura
+                onTap: () {
+                  setState(() {
+                    _selectedCategoryName = cat.name;
+                    _selectedCategoryObject = cat;
+                  });
+                },
               ),
             );
           },
@@ -403,6 +416,9 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
   }
 
   Widget _buildSaveButton(MyUser? user) {
+    bool isReady =
+        amountController.text.isNotEmpty && _selectedCategoryObject != null;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 15),
       child: SizedBox(
@@ -416,11 +432,12 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
             ),
           ),
           onPressed: () => _handleSave(user),
-          child: const Text(
-            "Save Transaction",
+          child: Text(
+            _isIncome ? "Save Income" : "Save Expense",
             style: TextStyle(
-              color: Colors.black,
+              color: AppColors.globalTextSecondaryColor,
               fontWeight: FontWeight.bold,
+
               fontSize: 16,
             ),
           ),
@@ -430,28 +447,34 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
   }
 
   Future<void> _handleSave(MyUser? user) async {
-    if (user != null &&
-        amountController.text.isNotEmpty &&
-        _selectedCategory.isNotEmpty) {
+    final amount = amountController.text.trim();
+
+    if (user != null && amount.isNotEmpty && _selectedCategoryObject != null) {
       try {
         await DBService().saveTransaction(
           uid: user.uid,
-          amount: double.parse(amountController.text),
-          title: _selectedCategory,
+          amount: double.parse(amount),
+          title: _selectedCategoryName,
           transactionType: _isIncome ? 'income' : 'expenses',
           date: _selectedDate.toIso8601String(),
-          comment: descriptionController.text,
+          comment: descriptionController.text.trim(),
+          category: _selectedCategoryObject!,
         );
         if (mounted) Navigator.pop(context, true);
       } catch (e) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Error saving!")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Error saving transaction!")),
+        );
       }
     } else {
+      String missing = "";
+      if (amount.isEmpty) missing = "amount";
+      if (_selectedCategoryObject == null)
+        missing += missing.isEmpty ? "category" : " and category";
+
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text("Complete all fields!")));
+      ).showSnackBar(SnackBar(content: Text("Please provide $missing")));
     }
   }
 }

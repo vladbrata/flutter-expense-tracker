@@ -1,7 +1,7 @@
-import 'package:expense_tracker/services/db_service.dart';
 import 'package:expense_tracker/services/user_class.dart';
 import 'package:flutter/material.dart';
 import 'package:expense_tracker/services/category_class.dart';
+import 'package:expense_tracker/style/app_styles.dart'; // Asigură-te că importi stilurile pentru globalAccentColor
 import 'package:provider/provider.dart';
 
 class CategoryContainer extends StatelessWidget {
@@ -18,65 +18,56 @@ class CategoryContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = Provider.of<MyUser?>(context);
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          margin: const EdgeInsets.only(bottom: 4),
-          // Eliminăm padding-ul manual (EdgeInsets.all(12)) pentru că IconButton adaugă spațiu
-          // Folosim constrângeri pentru a păstra dimensiunea exactă a cercului
-          width:
-              44, // Dimensiunea totală a cercului (20 icon + ~24 padding implicit)
-          height: 44,
-          decoration: BoxDecoration(
-            color: category.color, // Verde (Succes/Profit)
-            shape: BoxShape.circle,
-            border: isSelected
-                ? Border.all(color: Colors.white, width: 2)
-                : null,
+    return GestureDetector(
+      onTap: onTap, // Acesta declanșează selecția în pagina AddTransactionPage
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            margin: const EdgeInsets.only(bottom: 4),
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              // Culoarea cercului rămâne cea salvată în categorie
+              color: category.color,
+              shape: BoxShape.circle,
+              // Adăugăm o bordură albă sau aurie la selecție pentru a evidenția cercul
+              border: isSelected
+                  ? Border.all(color: AppColors.globalAccentColor, width: 3)
+                  : Border.all(color: Colors.transparent, width: 3),
+              boxShadow: isSelected
+                  ? [
+                      BoxShadow(
+                        color: AppColors.globalAccentColor.withOpacity(0.4),
+                        blurRadius: 8,
+                      ),
+                    ]
+                  : [],
+            ),
+            child: Icon(
+              category.icon,
+              // Culoarea iconiței se schimbă în funcție de selecție
+              color: isSelected ? AppColors.globalAccentColor : Colors.white,
+              size: 22,
+            ),
           ),
-          child: GestureDetector(
-            child: IconButton(
-              // Eliminăm padding-ul implicit al IconButton pentru a centra perfect iconița
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              icon: Icon(
-                category.icon,
-                color: isSelected ? Colors.green : Colors.white,
-                size: 20, // Păstrăm dimensiunea iconiței cerută anterior
-              ),
-              onPressed: () => AlertDialog.adaptive(
-                title: const Text('Delete Category'),
-                content: const Text(
-                  'Are you sure you want to delete this category?',
-                ),
-                actions: [
-                  TextButton(
-                    child: const Text('Cancel'),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  TextButton(
-                    child: const Text('Delete'),
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                  ),
-                ],
+          SizedBox(
+            width: 60, // Limitează lățimea textului pentru a nu strica grid-ul
+            child: Text(
+              category.name,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                color: isSelected ? AppColors.globalAccentColor : Colors.white,
               ),
             ),
           ),
-        ),
-        Text(
-          category.name,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-            color: Colors.white,
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
