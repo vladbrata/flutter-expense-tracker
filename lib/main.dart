@@ -38,33 +38,40 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       home: StreamBuilder<User?>(
-        // Pas 1: Ascultăm cine s-a logat
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, authSnapshot) {
+          if (authSnapshot.connectionState == ConnectionState.waiting) {
+            return const LoadingPage();
+          }
           if (authSnapshot.hasData && authSnapshot.data != null) {
-            // Pas 2: Dacă avem user logat, pornim citirea datelor lui din DB
-            return StreamBuilder<MyUser?>(
-              stream: DBService().getUserStream(authSnapshot.data!.uid),
-              builder: (context, userSnapshot) {
-                if (userSnapshot.connectionState == ConnectionState.waiting) {
-                  return const LoadingPage(); // Ecranul de loading menționat anterior
-                }
-
-                if (userSnapshot.hasData && userSnapshot.data != null) {
-                  // Pas 3: Datele sunt gata! Avem obiectul MyUser.
-                  // Putem să-l punem într-un Provider sau să-l dăm mai departe.
-                  return const RootPage();
-                }
-
-                return const LoadingPage();
-              },
+            // User is logged in
+            return StreamProvider<MyUser?>.value(
+              value: DBService().getUserStream(authSnapshot.data!.uid),
+              initialData: null,
+              child: const AuthWrapper(),
             );
           }
-
-          // Dacă nu e logat nimeni
+          // User is not logged in
           return const LoginPage();
         },
       ),
     );
+  }
+}
+
+class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final user = Provider.of<MyUser?>(context);
+
+    // While waiting for user data from DB
+    if (user == null) {
+      return const LoadingPage();
+    }
+
+    // User data is available, show RootPage
+    return const RootPage();
   }
 }

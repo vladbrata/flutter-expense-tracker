@@ -1,7 +1,7 @@
 import 'package:expense_tracker/pages/see_all_transactions_page.dart';
 import 'package:expense_tracker/services/user_class.dart';
 import 'package:expense_tracker/style/app_styles.dart';
-import 'package:expense_tracker/widgets/recent_transaction_widget.dart.dart';
+import 'package:expense_tracker/widgets/recent_transaction_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 

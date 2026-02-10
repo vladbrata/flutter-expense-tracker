@@ -5,6 +5,7 @@ class MyCategory {
   final String type;
   final IconData icon;
   final Color color;
+  final String id;
 
   static MyCategory? current;
 
@@ -13,5 +14,6 @@ class MyCategory {
     required this.type,
     required this.icon,
     required this.color,
+    required this.id,
   });
 }

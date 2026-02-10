@@ -20,6 +20,7 @@ class _RootPageState extends State<RootPage> {
   int _currentIndex = 0;
   late List<Widget> _pages;
   Future<void>? _dataFetchFuture;
+  MyUser? _currentUser;
 
   @override
   void initState() {
@@ -37,28 +38,30 @@ class _RootPageState extends State<RootPage> {
     ];
   }
 
-  // Creăm o funcție separată pentru pornirea procesului de fetch
-  void _startFetching() {
-    final user = Provider.of<MyUser?>(context, listen: false);
-    if (user != null) {
-      _dataFetchFuture = DBService().fetchUserData(user);
-    }
+  Future<void> _fetchUserData(MyUser user) async {
+    await DBService().fetchUserData(user);
+    await DBService().fetchCategories(user);
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Prima inițializare la deschiderea aplicației
-    if (_dataFetchFuture == null) {
-      _startFetching();
+    final user = Provider.of<MyUser?>(context);
+
+    // Check if user object has changed (e.g. profile update or initial load)
+    // We only fetch if the user instance is different to ensure we populate the new instance
+    if (user != null && user != _currentUser) {
+      _currentUser = user;
+      _dataFetchFuture = _fetchUserData(user);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // if (_dataFetchFuture == null) {
-    //   return const LoadingPage();
-    // }
+    // Should not happen due to AuthWrapper, but good for safety
+    if (_dataFetchFuture == null) {
+      return const LoadingPage();
+    }
 
     return FutureBuilder(
       future: _dataFetchFuture,
@@ -91,12 +94,12 @@ class _RootPageState extends State<RootPage> {
                 ),
               );
 
-              // MODIFICARE AICI: Dacă s-a adăugat o tranzacție (result == true)
               if (result == true) {
+                // Re-fetch data if a new transaction was added
                 setState(() {
-                  // Resetăm Future-ul pentru a forța FutureBuilder să re-afișeze LoadingPage
-                  // și să cheme din nou funcția de fetch din DB
-                  _startFetching();
+                  if (_currentUser != null) {
+                    _dataFetchFuture = _fetchUserData(_currentUser!);
+                  }
                 });
               }
             },

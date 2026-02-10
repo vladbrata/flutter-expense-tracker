@@ -1,9 +1,10 @@
 import 'package:expense_tracker/pages/add_category_page.dart';
+import 'package:expense_tracker/services/category_class.dart';
 import 'package:expense_tracker/services/db_service.dart';
-import 'package:expense_tracker/services/transaction_service.dart';
 import 'package:expense_tracker/services/user_class.dart';
 import 'package:expense_tracker/style/app_styles.dart';
 import 'package:expense_tracker/widgets/category_container.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -19,51 +20,134 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
   bool _isExpense = true;
   bool _isIncome = false;
   String _selectedCategory = "";
-  DateTime _selectedDate = DateTime.now(); // Variabilă pentru data selectată
-  TextEditingController amountController = TextEditingController();
-  TextEditingController descriptionController = TextEditingController();
+  DateTime _selectedDate = DateTime.now();
 
-  // Funcție pentru deschiderea calendarului în stilul aplicației
+  final TextEditingController amountController = TextEditingController();
+  final TextEditingController descriptionController = TextEditingController();
+
+  Future<void>? _categoriesFuture;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final user = Provider.of<MyUser?>(context);
+    if (user != null && _categoriesFuture == null) {
+      _categoriesFuture = DBService().fetchCategories(user);
+    }
+  }
+
+  // --- LOGICA ȘTERGERE CATEGORIE ---
+  void _showDeleteDialog(MyUser user, MyCategory cat) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          "Delete Category",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          "Are you sure you want to delete '${cat.name}'?",
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          // Buton Cancel
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+          ),
+          // Buton Delete
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: () async {
+              // DEBUG: Verificăm în consolă dacă avem ID-ul necesar
+              print("--- LOGICĂ ȘTERGERE ---");
+              print("ID Categorie: ${cat.id}");
+              print("Nume Categorie: ${cat.name}");
+
+              if (cat.id.isNotEmpty) {
+                print("✅ ID valid, ștergem din Firebase...");
+                try {
+                  // 1. Ștergere din Firebase
+                  await DBService()
+                      .deleteCategory(user.uid, cat.id)
+                      .timeout(const Duration(seconds: 5));
+                  print("✅ Șters din Firebase");
+
+                  // 2. Închidem dialogul
+                  if (mounted) Navigator.pop(context);
+
+                  // 3. Update UI local - ACESTA face refresh-ul vizual
+                  setState(() {
+                    // Eliminăm din lista locală a utilizatorului
+                    user.categories.removeWhere(
+                      (element) => element.id == cat.id,
+                    );
+
+                    // Dacă era categoria selectată, resetăm selecția
+                    if (_selectedCategory == cat.name) {
+                      _selectedCategory = "";
+                    }
+                  });
+
+                  print("✅ UI Actualizat local");
+                } catch (e) {
+                  print("❌ Eroare la ștergere: $e");
+                }
+              } else {
+                print(
+                  "⚠️ Eroare: Categoria nu are ID (este o categorie veche)",
+                );
+                // Chiar dacă n-are ID în DB, o scoatem din listă să nu o mai vadă userul
+                setState(() {
+                  user.categories.removeWhere(
+                    (element) => element.name == cat.name,
+                  );
+                });
+                Navigator.pop(context);
+              }
+            },
+            child: const Text(
+              "Delete",
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
       firstDate: DateTime(2020),
       lastDate: DateTime(2101),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.dark(
-              primary: AppColors
-                  .globalAccentColor, // Culoarea de selecție (galben/auriu)
-              onPrimary: Colors.black, // Culoarea textului pe selecție
-              surface: AppColors.surface, // Fundalul ferestrei
-              onSurface: Colors.white, // Culoarea textului calendarului
-            ),
-            textButtonTheme: TextButtonThemeData(
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors
-                    .globalAccentColor, // Culoarea butoanelor OK/Cancel
-              ),
-            ),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: ColorScheme.dark(
+            primary: AppColors.globalAccentColor,
+            surface: AppColors.surface,
           ),
-          child: child!,
-        );
-      },
+        ),
+        child: child!,
+      ),
     );
-    if (picked != null && picked != _selectedDate) {
-      setState(() {
-        _selectedDate = picked;
-      });
-    }
+    if (picked != null) setState(() => _selectedDate = picked);
   }
 
   @override
   Widget build(BuildContext context) {
     final user = Provider.of<MyUser?>(context);
-    if (user != null) {
-      DBService().fetchCategories(user);
-    }
 
     return Scaffold(
       backgroundColor: AppColors.globalBackgroundColor,
@@ -79,67 +163,13 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              // Header pentru comutare Expense/Income
-              Container(
-                decoration: const BoxDecoration(
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(20),
-                    bottomRight: Radius.circular(20),
-                  ),
-                  color: AppColors.globalAccentColor,
-                ),
-                height: 50,
-                width: double.infinity,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 50.0),
-                  child: Row(
-                    children: [
-                      TextButton(
-                        onPressed: () => setState(() {
-                          _isExpense = true;
-                          _isIncome = false;
-                        }),
-                        child: Text(
-                          'Expense',
-                          style: TextStyle(
-                            color: AppColors.globalTextMainColor,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 25,
-                            decoration: _isExpense
-                                ? TextDecoration.underline
-                                : TextDecoration.none,
-                          ),
-                        ),
-                      ),
-                      const Spacer(),
-                      TextButton(
-                        onPressed: () => setState(() {
-                          _isExpense = false;
-                          _isIncome = true;
-                        }),
-                        child: Text(
-                          'Income',
-                          style: TextStyle(
-                            color: AppColors.globalTextMainColor,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 25,
-                            decoration: _isIncome
-                                ? TextDecoration.underline
-                                : TextDecoration.none,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              // Selector Tip Tranzactie
+              _buildTypeSelector(),
               const SizedBox(height: 20),
 
-              // Container principal
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 15),
                 padding: const EdgeInsets.only(bottom: 20),
-                width: double.infinity,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
                   color: AppColors.surface,
@@ -147,153 +177,28 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                 child: Column(
                   children: [
                     const SizedBox(height: 20),
-                    // Input Sumă
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SizedBox(
-                          width: 100,
-                          child: TextField(
-                            controller: amountController,
-                            keyboardType: TextInputType.number,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly,
-                            ],
-                            style: const TextStyle(
-                              color: AppColors.globalTextMainColor,
-                              fontSize: 24,
-                            ),
-                            textAlign: TextAlign.center,
-                            decoration: const InputDecoration(
-                              hintText: "0",
-                              hintStyle: TextStyle(color: Colors.grey),
-                            ),
-                          ),
-                        ),
-                        const Text(
-                          ' RON',
-                          style: TextStyle(
-                            color: AppColors.globalTextMainColor,
-                            fontSize: 18,
-                          ),
-                        ),
-                      ],
-                    ),
+                    _buildAmountInput(),
                     const SizedBox(height: 30),
 
-                    // Secțiune Categorii
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Padding(
-                          padding: EdgeInsets.only(left: 15.0),
-                          child: Text(
-                            'Categories',
-                            style: TextStyle(
-                              color: AppColors.globalTextMainColor,
-                            ),
-                          ),
+                    // Sectiune Categorii
+                    const Padding(
+                      padding: EdgeInsets.only(left: 15.0),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Categories',
+                          style: TextStyle(color: Colors.white70),
                         ),
-                        _buildCategoriesContent(user),
-                      ],
+                      ),
                     ),
+                    _buildCategoriesContent(user),
 
                     const SizedBox(height: 20),
-
-                    // BUTON CALENDAR (Uniformizat)
-                    Center(
-                      child: TextButton.icon(
-                        onPressed: () => _selectDate(context),
-                        icon: const Icon(
-                          Icons.calendar_today,
-                          color: AppColors.globalAccentColor,
-                        ),
-                        label: Text(
-                          "Data: ${_selectedDate.day}.${_selectedDate.month}.${_selectedDate.year}",
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                          ),
-                        ),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 12,
-                          ),
-                          backgroundColor: AppColors.globalAccentColor
-                              .withOpacity(0.1),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
-                            side: const BorderSide(
-                              color: AppColors.globalAccentColor,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 20.0,
-                        horizontal: 15,
-                      ),
-                      child: Container(
-                        height: 40,
-                        width: double.infinity,
-                        child: Center(
-                          child: TextField(
-                            style: TextStyle(
-                              color: AppColors.globalTextMainColor,
-                            ),
-                            controller: descriptionController,
-                            decoration: InputDecoration(
-                              labelText: 'Add a Description',
-
-                              labelStyle: TextStyle(
-                                color: AppColors.globalTextMainColor,
-                              ),
-                              // Border-ul normal
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              // Border-ul când este apăsat
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(20),
-                                borderSide: BorderSide(
-                                  color: AppColors.globalAccentColor,
-                                  width: 2.0,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    // Buton Salvare
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 15.0),
-                      child: SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: ElevatedButton(
-                          onPressed: () => _handleSave(user),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.globalAccentColor,
-                            foregroundColor: Colors.black,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(15),
-                            ),
-                          ),
-                          child: Text(
-                            _isExpense ? "Save Expense" : "Save Income",
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
+                    _buildDatePickerBtn(),
+                    const SizedBox(height: 20),
+                    _buildDescriptionField(),
+                    const SizedBox(height: 30),
+                    _buildSaveButton(user),
                   ],
                 ),
               ),
@@ -304,115 +209,249 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
     );
   }
 
-  // Logica de salvare
+  // --- HELPER WIDGETS ---
+
+  Widget _buildTypeSelector() {
+    return Container(
+      color: AppColors.globalAccentColor,
+      height: 50,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _typeBtn(
+            "Expense",
+            _isExpense,
+            () => setState(() {
+              _isExpense = true;
+              _isIncome = false;
+            }),
+          ),
+          _typeBtn(
+            "Income",
+            _isIncome,
+            () => setState(() {
+              _isExpense = false;
+              _isIncome = true;
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _typeBtn(String label, bool active, VoidCallback onTap) {
+    return TextButton(
+      onPressed: onTap,
+      child: Text(
+        label,
+        style: TextStyle(
+          color: AppColors.globalTextMainColor,
+          fontWeight: FontWeight.bold,
+          fontSize: 20,
+          decoration: active ? TextDecoration.underline : TextDecoration.none,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAmountInput() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        SizedBox(
+          width: 120,
+          child: TextField(
+            controller: amountController,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            style: const TextStyle(color: Colors.white, fontSize: 28),
+            textAlign: TextAlign.center,
+            decoration: const InputDecoration(
+              hintText: "0",
+              hintStyle: TextStyle(color: Colors.grey),
+            ),
+          ),
+        ),
+        const Text(' RON', style: TextStyle(color: Colors.white, fontSize: 18)),
+      ],
+    );
+  }
+
+  Widget _buildCategoriesContent(MyUser? user) {
+    return FutureBuilder(
+      future: _categoriesFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            (user?.categories.isEmpty ?? true)) {
+          return const Center(
+            child: CircularProgressIndicator(
+              color: AppColors.globalAccentColor,
+            ),
+          );
+        }
+
+        final filtered =
+            user?.categories
+                .where(
+                  (cat) =>
+                      _isExpense ? cat.type == "Expense" : cat.type == "Income",
+                )
+                .toList() ??
+            [];
+
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(10),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 4,
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
+            childAspectRatio: 0.85,
+          ),
+          itemCount: filtered.length + 1,
+          itemBuilder: (context, index) {
+            if (index == filtered.length) {
+              return _addCategoryBtn(user);
+            }
+            final cat = filtered[index];
+            return GestureDetector(
+              onLongPress: () => _showDeleteDialog(user!, cat),
+              child: CategoryContainer(
+                category: cat,
+                isSelected: cat.name == _selectedCategory,
+                onTap: () => setState(() => _selectedCategory = cat.name),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _addCategoryBtn(MyUser? user) {
+    return GestureDetector(
+      onTap: () async {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const AddCategoryPage()),
+        );
+        setState(() {
+          _categoriesFuture = DBService().fetchCategories(user!);
+        });
+      },
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey[800],
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.add, color: Colors.white),
+          ),
+          const Text(
+            "Add",
+            style: TextStyle(color: Colors.white, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDatePickerBtn() {
+    return TextButton.icon(
+      onPressed: () => _selectDate(context),
+      icon: const Icon(
+        Icons.calendar_today,
+        color: AppColors.globalAccentColor,
+      ),
+      label: Text(
+        "${_selectedDate.day}.${_selectedDate.month}.${_selectedDate.year}",
+        style: const TextStyle(color: Colors.white),
+      ),
+      style: TextButton.styleFrom(
+        backgroundColor: AppColors.globalAccentColor.withOpacity(0.1),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15),
+          side: const BorderSide(color: AppColors.globalAccentColor),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDescriptionField() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 15),
+      child: TextField(
+        controller: descriptionController,
+        style: const TextStyle(color: Colors.white),
+        decoration: InputDecoration(
+          labelText: 'Description',
+          labelStyle: const TextStyle(color: Colors.white70),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(15),
+            borderSide: const BorderSide(color: Colors.grey),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(15),
+            borderSide: const BorderSide(color: AppColors.globalAccentColor),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSaveButton(MyUser? user) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 15),
+      child: SizedBox(
+        width: double.infinity,
+        height: 50,
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.globalAccentColor,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15),
+            ),
+          ),
+          onPressed: () => _handleSave(user),
+          child: const Text(
+            "Save Transaction",
+            style: TextStyle(
+              color: Colors.black,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _handleSave(MyUser? user) async {
     if (user != null &&
         amountController.text.isNotEmpty &&
         _selectedCategory.isNotEmpty) {
       try {
-        double amount = double.parse(amountController.text.trim());
-        String type = _isIncome ? 'income' : 'expenses';
-
-        // Salvare în Firebase
         await DBService().saveTransaction(
           uid: user.uid,
-          amount: amount,
+          amount: double.parse(amountController.text),
           title: _selectedCategory,
-          transactionType: type,
+          transactionType: _isIncome ? 'income' : 'expenses',
           date: _selectedDate.toIso8601String(),
-          comment: descriptionController.text.trim(),
+          comment: descriptionController.text,
         );
-
-        // Adăugare locală pentru refresh instant
-        if (_isExpense) {
-          user.expenses.add(
-            Expense(
-              id: DateTime.now().toString(),
-              userId: user.uid,
-              amount: amount,
-              title: _selectedCategory,
-              date: _selectedDate,
-              comment: descriptionController.text.trim(),
-            ),
-          );
-        } else {
-          user.incomes.add(
-            Income(
-              id: DateTime.now().toString(),
-              userId: user.uid,
-              amount: amount,
-              title: _selectedCategory,
-              date: _selectedDate,
-              comment: descriptionController.text.trim(),
-            ),
-          );
-        }
-
-        if (mounted) {
-          Navigator.pop(context, true);
-        }
+        if (mounted) Navigator.pop(context, true);
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Error saving transaction!")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Error saving!")));
       }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please select a category and amount!")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Complete all fields!")));
     }
-  }
-
-  Widget _buildCategoriesContent(MyUser? user) {
-    if (user == null) return const Center(child: CircularProgressIndicator());
-
-    final filteredCategories = user.categories.where((cat) {
-      return _isExpense ? cat.type == "Expense" : cat.type == "Income";
-    }).toList();
-
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(10),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4, // Am mărit puțin dimensiunea pentru vizibilitate
-        mainAxisSpacing: 10,
-        crossAxisSpacing: 10,
-        childAspectRatio: 0.9,
-      ),
-      itemCount: filteredCategories.length + 1,
-      itemBuilder: (context, index) {
-        if (index == filteredCategories.length) {
-          return GestureDetector(
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const AddCategoryPage()),
-            ),
-            child: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[800],
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.add, color: Colors.white, size: 24),
-                ),
-                const Text(
-                  "Add",
-                  style: TextStyle(color: Colors.white, fontSize: 12),
-                ),
-              ],
-            ),
-          );
-        }
-        final cat = filteredCategories[index];
-        return CategoryContainer(
-          category: cat,
-          isSelected: cat.name == _selectedCategory,
-          onTap: () => setState(() => _selectedCategory = cat.name),
-        );
-      },
-    );
   }
 }

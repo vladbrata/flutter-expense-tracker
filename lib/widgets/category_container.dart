@@ -1,5 +1,8 @@
+import 'package:expense_tracker/services/db_service.dart';
+import 'package:expense_tracker/services/user_class.dart';
 import 'package:flutter/material.dart';
 import 'package:expense_tracker/services/category_class.dart';
+import 'package:provider/provider.dart';
 
 class CategoryContainer extends StatelessWidget {
   const CategoryContainer({
@@ -15,6 +18,7 @@ class CategoryContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final user = Provider.of<MyUser?>(context);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -32,16 +36,35 @@ class CategoryContainer extends StatelessWidget {
                 ? Border.all(color: Colors.white, width: 2)
                 : null,
           ),
-          child: IconButton(
-            // Eliminăm padding-ul implicit al IconButton pentru a centra perfect iconița
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            icon: Icon(
-              category.icon,
-              color: isSelected ? Colors.green : Colors.white,
-              size: 20, // Păstrăm dimensiunea iconiței cerută anterior
+          child: GestureDetector(
+            child: IconButton(
+              // Eliminăm padding-ul implicit al IconButton pentru a centra perfect iconița
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              icon: Icon(
+                category.icon,
+                color: isSelected ? Colors.green : Colors.white,
+                size: 20, // Păstrăm dimensiunea iconiței cerută anterior
+              ),
+              onPressed: () => AlertDialog.adaptive(
+                title: const Text('Delete Category'),
+                content: const Text(
+                  'Are you sure you want to delete this category?',
+                ),
+                actions: [
+                  TextButton(
+                    child: const Text('Cancel'),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  TextButton(
+                    child: const Text('Delete'),
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                  ),
+                ],
+              ),
             ),
-            onPressed: onTap,
           ),
         ),
         Text(

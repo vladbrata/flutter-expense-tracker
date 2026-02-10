@@ -147,6 +147,7 @@ class DBService {
               try {
                 loadedCategories.add(
                   MyCategory(
+                    id: key,
                     name: value['name'],
                     type: value['type'],
                     // Convertim string-ul înapoi în IconData
@@ -304,6 +305,22 @@ class DBService {
       );
     } catch (e) {
       print("❌ EROARE CRITICĂ: $e");
+    }
+  }
+
+  Future<void> deleteCategory(String uid, String categoryId) async {
+    try {
+      // Folosim instanța _db definită mai sus
+      DatabaseReference ref = _firebaseDatabase
+          .child("users")
+          .child(uid)
+          .child("category")
+          .child(categoryId);
+      await ref.remove();
+      print("✅ Șters cu succes din regiunea Europe");
+    } catch (e) {
+      print("❌ Eroare la ștergere: $e");
+      rethrow;
     }
   }
 }

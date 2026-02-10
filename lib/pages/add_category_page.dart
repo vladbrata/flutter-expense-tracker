@@ -2,6 +2,7 @@ import 'package:expense_tracker/services/db_service.dart';
 import 'package:expense_tracker/services/user_class.dart';
 import 'package:expense_tracker/style/app_styles.dart';
 import 'package:expense_tracker/widgets/income_category_container.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:expense_tracker/services/category_class.dart';
@@ -265,34 +266,37 @@ class _AddCategoryPageState extends State<AddCategoryPage> {
             child: ElevatedButton(
               onPressed: () async {
                 if (categoryNameController.text.isNotEmpty) {
-                  print("✅ catname is empty: ${MyCategory.current?.name}");
-                  // Creăm obiectul și îl salvăm în variabila statică
+                  // 1. Generăm referința și cheia UNICĂ în prealabil
+                  final ref = FirebaseDatabase.instance
+                      .ref("users/${user!.uid}/categories")
+                      .push();
+                  final String generatedId =
+                      ref.key!; // Acesta este ID-ul tău sigur
+
+                  // 2. Creăm obiectul și îi dăm ID-ul generat mai sus
                   MyCategory.current = MyCategory(
-                    name: categoryNameController.text,
+                    id: generatedId, // <--- ID-ul este acum cel din Firebase
+                    name: categoryNameController.text.trim(),
                     type: _selectedType.value,
                     icon: _selectedExpenseIcon.value,
                     color: _selectedCategoryColor.value,
                   );
+
                   try {
+                    // 3. Trimitem obiectul către DBService
+                    // Poți modifica addNewCategory să folosească direct MyCategory.current!.id
                     await DBService().addNewCategory(
                       MyCategory.current!,
                       user!,
                     );
-                    print(
-                      "✅ Obiectul a fost creat și salvat global: ${MyCategory.current?.name}",
-                    );
-                    print("Type: ${MyCategory.current?.type}");
-                    print("Icon: ${MyCategory.current?.icon}");
-                    print("Color: ${MyCategory.current?.color}");
+
+                    print("✅ Categoria a fost salvată cu ID-ul: $generatedId");
 
                     if (mounted) {
-                      Navigator.pop(context);
+                      Navigator.pop(context, true);
                     }
                   } catch (e) {
-                    print(
-                      "❌ Eroare la salvarea categoriei in baza de date: $e",
-                    );
-                    // Optional: Show a snackbar or alert to the user
+                    print("❌ Eroare la salvare: $e");
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text("Error saving category: $e")),
