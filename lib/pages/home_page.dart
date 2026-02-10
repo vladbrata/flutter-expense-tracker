@@ -61,6 +61,10 @@ class _HomePageState extends State<HomePage> {
                       "Total tranzacții venituri",
                       "${user?.incomes.length ?? 0}",
                     ),
+                    Icon(
+                      user?.allTransactions[0].category.icon,
+                      color: user?.allTransactions[0].category.color,
+                    ),
                   ],
                 ),
               ),

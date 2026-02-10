@@ -20,7 +20,15 @@ class RecentTransactionWidget extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(top: 12, left: 10, right: 10),
       child: GestureDetector(
-        onTap: () {},
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) =>
+                  TransactionDetailPage(transaction: transaction),
+            ),
+          );
+        },
         child: Container(
           height: 70,
           width: double.infinity,
