@@ -77,9 +77,7 @@ class RecentTransactionContainer extends StatelessWidget {
                 : (user?.allTransactions.length ?? 0),
             itemBuilder: (context, index) {
               // Inversăm lista aici pentru a avea ultima tranzacție la index 0
-              final reversedList =
-                  user?.allTransactions.reversed.toList() ?? [];
-              final transaction = reversedList[index];
+              final transaction = user?.allTransactions[index];
 
               return RecentTransactionWidget(transaction: transaction);
             },

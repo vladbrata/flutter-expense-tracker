@@ -41,9 +41,27 @@ class _HomePageState extends State<HomePage> {
           child: Column(
             children: [
               const GreetingsWidget(),
-              OverviewContainer(),
-              const WeekOverviewContainer(),
-              const RecentTransactionContainer(),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 10,
+                ),
+                child: OverviewContainer(),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 10,
+                ),
+                child: WeekOverviewContainer(expenses: user?.expenses ?? []),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 10,
+                ),
+                child: const RecentTransactionContainer(),
+              ),
 
               const SizedBox(height: 30),
 
@@ -60,10 +78,6 @@ class _HomePageState extends State<HomePage> {
                     _buildSummaryRow(
                       "Total tranzacții venituri",
                       "${user?.incomes.length ?? 0}",
-                    ),
-                    Icon(
-                      user?.allTransactions[0].category.icon,
-                      color: user?.allTransactions[0].category.color,
                     ),
                   ],
                 ),
